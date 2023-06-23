@@ -2,6 +2,15 @@
 @tailwind components;
 @tailwind utilities;
 
-body {
-  height: 100vh;
+html,
+body,
+body > div:first-child,
+div#__next,
+div#__next > div:first-child {
+  height: 100%;
+  overflow: hidden;
+}
+
+div#__next {
+  position: relative;
 }
