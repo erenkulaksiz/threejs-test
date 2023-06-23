@@ -1,27 +1,27 @@
 "use client";
-import { useEffect, useRef, useState } from "react";
-import { Canvas, useThree, useFrame } from "@react-three/fiber";
+import { useEffect, useState } from "react";
+import { Canvas, useThree } from "@react-three/fiber";
 import { Stats, OrbitControls, Line } from "@react-three/drei";
 import Pixelation from "@/components/Pixelation";
 import { EffectComposer } from "@react-three/postprocessing";
-import { Vector3, Vector2, BufferGeometry } from "three";
-import Box from "@/components/Box";
+import { Vector3, Vector2 } from "three";
 
-const boxes = [
-  { id: "0", pos: [0, 0, 0] },
-  { id: "1", pos: [0, 5, 0] },
-];
+interface Box {
+  id: string;
+  color: string;
+  pos: [number, number, number];
+}
 
 function Raycast() {
   const [pos, setPos] = useState<[number, number, number]>([0, 0, 0]);
+  const [boxes, setBoxes] = useState<Box[]>([]);
+  const [hovered, setHovered] = useState<Box["id"] | null>(null);
   const { raycaster, scene, camera } = useThree();
 
   raycaster.setFromCamera(new Vector2(0, 0), camera);
-  const intersects = raycaster.intersectObjects(scene.children);
-  console.log(intersects);
 
   useEffect(() => {
-    const handleMouseMove = (e: MouseEvent) => {
+    function handleMouseMove(e: MouseEvent) {
       raycaster.setFromCamera(
         new Vector2(
           (e.clientX / window.innerWidth) * 2 - 1,
@@ -29,19 +29,78 @@ function Raycast() {
         ),
         camera
       );
+
       const intersects = raycaster.intersectObjects(scene.children);
 
-      if (intersects[0]?.object.userData.id === "box") return;
+      const object = intersects.find(
+        (obj) => obj.object.userData.id === "plane"
+      );
+
+      if (!object) return;
+
       setPos([
-        intersects[0]?.point.x,
-        intersects[0]?.point.y,
-        intersects[0]?.point.z,
+        Math.round(object.point.x),
+        Math.round(object.point.y) + 0.5,
+        Math.round(object.point.z),
       ]);
-    };
+    }
 
     window.addEventListener("mousemove", handleMouseMove);
-    return () => window.removeEventListener("mousemove", handleMouseMove);
+    return () => {
+      window.removeEventListener("mousemove", handleMouseMove);
+    };
   }, []);
+
+  useEffect(() => {
+    if (!hovered) return;
+
+    function handleRightClick() {
+      console.log("test");
+      console.log("hovered", hovered);
+      if (!hovered) return;
+      setBoxes((prev) => {
+        const box = prev.find((box) => box.id === hovered);
+        if (!box) return prev;
+        return prev.filter((box) => box.id !== hovered);
+      });
+      setHovered(null);
+    }
+
+    window.addEventListener("contextmenu", handleRightClick);
+    return () => {
+      window.removeEventListener("contextmenu", handleRightClick);
+    };
+  }, [hovered]);
+
+  function createBox() {
+    const position = [
+      Math.round(pos[0]),
+      Math.round(pos[1]) - 0.5,
+      Math.round(pos[2]),
+    ];
+    const box = boxes.find(
+      (box) =>
+        box.pos[0] === position[0] &&
+        box.pos[1] === position[1] &&
+        box.pos[2] === position[2]
+    );
+
+    if (box) return;
+    const newBox: Box = {
+      id: Math.random().toString(),
+      pos,
+      color: "red",
+    };
+    setBoxes((prev) => [...prev, newBox]);
+  }
+
+  function onBoxHover(box: Box) {
+    setHovered(box.id);
+  }
+
+  function onBoxUnhover() {
+    setHovered(null);
+  }
 
   return (
     <>
@@ -56,36 +115,43 @@ function Raycast() {
       <mesh
         position={new Vector3(pos[0], pos[1], pos[2])}
         userData={{ id: "box" }}
+        onClick={createBox}
       >
         <boxGeometry args={[1, 1, 1]} />
         <meshStandardMaterial color="blue" />
       </mesh>
+      {boxes.map((box) => (
+        <mesh
+          key={box.id}
+          position={new Vector3(box.pos[0], box.pos[1], box.pos[2])}
+          onPointerEnter={() => onBoxHover(box)}
+          onPointerMove={() => onBoxHover(box)}
+          onPointerLeave={() => onBoxUnhover()}
+        >
+          <boxGeometry args={[1, 1, 1]} />
+          <meshStandardMaterial
+            color={hovered == box.id ? "hotpink" : box.color}
+          />
+        </mesh>
+      ))}
     </>
   );
 }
 
 export default function Home() {
-  const [clickedBox, setClickedBox] = useState<string>("-1");
-
   return (
-    <Canvas shadows gl={{ antialias: false }}>
+    <Canvas
+      shadows
+      gl={{ antialias: false }}
+      style={{ backgroundColor: "black" }}
+    >
       <ambientLight intensity={1} />
       <pointLight position={[10, 10, 10]} intensity={1} castShadow />
-      {/*boxes.map((box) => (
-        <Box
-          position={[box.pos[0], box.pos[1], box.pos[2]]}
-          castShadow
-          boxId={box.id}
-          onBoxClick={(id) => setClickedBox(id === clickedBox ? "-1" : id)}
-          isClicked={box.id === clickedBox}
-          key={box.id}
-        />
-      ))*/}
-      <OrbitControls />
+      <OrbitControls maxPolarAngle={Math.PI / 2} />
       <Stats />
       <Raycast />
-      <mesh position={[0, -1, 0]} castShadow>
-        <boxGeometry args={[10, 0.2, 10]} />
+      <mesh position={[0, -1, 0]} castShadow userData={{ id: "plane" }}>
+        <boxGeometry args={[100, 0.01, 100]} />
         <meshStandardMaterial color="white" />
       </mesh>
       <EffectComposer>
