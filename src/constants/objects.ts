@@ -13,6 +13,12 @@ const objects: { [key: string]: ObjectTypes } = {
     color: "#c2b280",
     image: "plank.png",
   },
+  dirt: {
+    id: 2,
+    name: "dirt",
+    color: "#8b4513",
+    image: "dirt.png",
+  },
 };
 
 export default objects;

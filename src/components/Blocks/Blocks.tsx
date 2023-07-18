@@ -1,34 +1,29 @@
 "use client";
 import { useEffect, useState } from "react";
-import { useThree } from "@react-three/fiber";
+import { useFrame, useThree } from "@react-three/fiber";
 import { Vector3, Vector2 } from "three";
 import Box from "@/components/Box";
+import generateBoxes from "@/utils/generateBoxes";
+import guid from "@/utils/guid";
 import type { BoxTypes } from "@/types/Box";
-import type { RaycastProps } from "./Raycast.types";
+import type { BlocksProps } from "./Blocks.types";
 
-export default function Raycast({ selectedBlock }: RaycastProps) {
+export default function Blocks({ selectedBlock }: BlocksProps) {
   const [isIntersecting, setIsIntersecting] = useState(false);
   const [pos, setPos] = useState<Vector3>(new Vector3(0, -0.5, 0));
   const [boxes, setBoxes] = useState<BoxTypes[]>([]);
   const [hovered, setHovered] = useState<BoxTypes["id"] | null>(null);
   const { raycaster, scene, camera } = useThree();
 
-  raycaster.setFromCamera(new Vector2(0, 0), camera);
-
-  function handleMouseMove(e: MouseEvent) {
-    raycaster.setFromCamera(
-      new Vector2(
-        (e.clientX / window.innerWidth) * 2 - 1,
-        -(e.clientY / window.innerHeight) * 2 + 1
-      ),
-      camera
-    );
+  useFrame(() => {
+    raycaster.setFromCamera(new Vector2(0, 0), camera);
 
     const intersects = raycaster.intersectObjects(scene.children);
 
     if (intersects.length == 0) {
       setIsIntersecting(false);
-      return setHovered(null);
+      setHovered(null);
+      return;
     } else {
       setIsIntersecting(true);
     }
@@ -37,10 +32,11 @@ export default function Raycast({ selectedBlock }: RaycastProps) {
       (el) => el.object.userData.objectId != "addBox"
     )?.[0];
 
-    if (
+    const isHoveredBox =
       firstIntersect?.object.userData.objectId == "box" &&
-      firstIntersect?.object.userData.id != hovered
-    ) {
+      firstIntersect?.object.userData.id != hovered;
+
+    if (isHoveredBox) {
       setHovered(firstIntersect?.object.userData.id);
     } else if (firstIntersect?.object.userData.objectId != "box") {
       setHovered(null);
@@ -66,22 +62,18 @@ export default function Raycast({ selectedBlock }: RaycastProps) {
         )
       )
     );
-  }
+  });
 
   useEffect(() => {
-    generateBoxes();
-    window.addEventListener("mousemove", handleMouseMove);
-    return () => {
-      window.removeEventListener("mousemove", handleMouseMove);
-    };
+    const boxes = generateBoxes();
+    setBoxes(boxes);
   }, []);
 
   useEffect(() => {
     window.addEventListener("contextmenu", handleRightClick);
 
-    if (!hovered) return;
-
-    function handleRightClick() {
+    function handleRightClick(event: MouseEvent) {
+      event.preventDefault();
       if (!hovered) return;
       setBoxes((prev) => {
         const box = prev.find((box) => box.id === hovered);
@@ -108,11 +100,9 @@ export default function Raycast({ selectedBlock }: RaycastProps) {
         box.pos.y === position.y &&
         box.pos.z === position.z
     );
-
-    const id = Math.random().toString();
-
     if (box) return;
 
+    const id = guid();
     const newBox: BoxTypes = {
       id,
       pos,
@@ -121,21 +111,6 @@ export default function Raycast({ selectedBlock }: RaycastProps) {
 
     setBoxes((prev) => [...prev, newBox]);
     setHovered(id);
-  }
-
-  function generateBoxes() {
-    let _boxes: BoxTypes[] = [];
-    for (let i = 0; i < 15; i++) {
-      for (let j = 0; j < 15; j++) {
-        _boxes.push({
-          id: Math.random().toString(),
-          pos: new Vector3(Math.round(i - 7), -0.5, Math.round(j - 7)),
-          blockId: 1,
-          //color: `#${Math.floor(Math.random() * 16777215).toString(16)}`,
-        });
-      }
-    }
-    setBoxes((prev) => [...prev, ..._boxes]);
   }
 
   return (

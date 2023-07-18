@@ -1,11 +1,12 @@
 "use client";
 import { useState } from "react";
 import { Canvas } from "@react-three/fiber";
-import { OrbitControls, Stats } from "@react-three/drei";
+import { Stats } from "@react-three/drei";
 import { EffectComposer } from "@react-three/postprocessing";
 import Pixelation from "@/components/Pixelation";
-import Raycast from "@/components/Raycast";
+import Blocks from "@/components/Blocks";
 import ObjectSelector from "@/components/ObjectSelector";
+import PlayerCam from "@/components/PlayerCam";
 
 export default function Home() {
   const [selectedBlock, setSelectedBlock] = useState<number>(0);
@@ -16,16 +17,12 @@ export default function Home() {
         selectedBlock={selectedBlock}
         onBlockSelect={(blockId) => setSelectedBlock(blockId)}
       />
-      <Canvas
-        shadows
-        gl={{ antialias: false }}
-        style={{ backgroundColor: "black" }}
-      >
+      <Canvas shadows="basic" style={{ backgroundColor: "black" }}>
         <ambientLight intensity={1} />
         <pointLight position={[10, 10, 10]} intensity={1} castShadow />
-        <OrbitControls />
+        <PlayerCam />
         <Stats />
-        <Raycast selectedBlock={selectedBlock} />
+        <Blocks selectedBlock={selectedBlock} />
         <EffectComposer>
           <Pixelation />
         </EffectComposer>

@@ -24,13 +24,15 @@ export default function ObjectSelector({
               htmlFor={`block_${id}`}
             >
               {selectedBlock == id && (
-                <div className="absolute inset-0 border-4 border-white/60"></div>
+                <div className="absolute inset-0 border-4 border-white/40"></div>
               )}
               <img src={`/${image}`} alt={key} />
             </label>
           </div>
         );
       })}
+      <button>Save</button>
+      <button>Load</button>
     </div>
   );
 }

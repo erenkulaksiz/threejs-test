@@ -1,5 +1,5 @@
 import type { ObjectTypes } from "@/types/Object";
 
-export interface RaycastProps {
+export interface BlocksProps {
   selectedBlock: ObjectTypes["id"];
 }
