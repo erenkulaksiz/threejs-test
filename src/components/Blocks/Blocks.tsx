@@ -1,19 +1,24 @@
 "use client";
 import { useEffect, useState } from "react";
-import { useFrame, useThree } from "@react-three/fiber";
+import { ThreeEvent, useFrame, useThree } from "@react-three/fiber";
 import { Vector3, Vector2 } from "three";
-import Box from "@/components/Box";
-import generateBoxes from "@/utils/generateBoxes";
+import Block from "@/components/Block";
+import generateBlocks from "@/utils/generateBlocks";
 import guid from "@/utils/guid";
-import type { BoxTypes } from "@/types/Box";
-import type { BlocksProps } from "./Blocks.types";
+import { useBlockStore } from "@/stores/blockStore";
+import type { BlockTypes } from "@/types/Block";
 
-export default function Blocks({ selectedBlock }: BlocksProps) {
+export default function Blocks() {
   const [isIntersecting, setIsIntersecting] = useState(false);
   const [pos, setPos] = useState<Vector3>(new Vector3(0, -0.5, 0));
-  const [boxes, setBoxes] = useState<BoxTypes[]>([]);
-  const [hovered, setHovered] = useState<BoxTypes["id"] | null>(null);
+  const [hovered, setHovered] = useState<BlockTypes["id"] | null>(null);
   const { raycaster, scene, camera } = useThree();
+
+  const selectedBlock = useBlockStore((state) => state.selectedBlock);
+  const blocks = useBlockStore((state) => state.blocks);
+  const { setBlocks, removeBlock, addBlock } = useBlockStore(
+    (state) => state.actions
+  );
 
   useFrame(() => {
     raycaster.setFromCamera(new Vector2(0, 0), camera);
@@ -29,21 +34,21 @@ export default function Blocks({ selectedBlock }: BlocksProps) {
     }
 
     const firstIntersect = intersects.filter(
-      (el) => el.object.userData.objectId != "addBox"
+      (el) => el.object.userData.objectId != "addBlock"
     )?.[0];
 
-    const isHoveredBox =
-      firstIntersect?.object.userData.objectId == "box" &&
+    const isHoveredBlock =
+      firstIntersect?.object.userData.objectId == "block" &&
       firstIntersect?.object.userData.id != hovered;
 
-    if (isHoveredBox) {
+    if (isHoveredBlock) {
       setHovered(firstIntersect?.object.userData.id);
-    } else if (firstIntersect?.object.userData.objectId != "box") {
+    } else if (firstIntersect?.object.userData.objectId != "block") {
       setHovered(null);
     }
 
     const object = intersects.find(
-      (obj) => obj.object.userData.objectId === "box"
+      (obj) => obj.object.userData.objectId === "block"
     );
 
     if (!object) return;
@@ -65,72 +70,58 @@ export default function Blocks({ selectedBlock }: BlocksProps) {
   });
 
   useEffect(() => {
-    const boxes = generateBoxes();
-    setBoxes(boxes);
+    setBlocks(generateBlocks());
   }, []);
 
-  useEffect(() => {
-    window.addEventListener("contextmenu", handleRightClick);
-
-    function handleRightClick(event: MouseEvent) {
-      event.preventDefault();
+  function onClick(event: ThreeEvent<MouseEvent>) {
+    if (event.button == 2) {
       if (!hovered) return;
-      setBoxes((prev) => {
-        const box = prev.find((box) => box.id === hovered);
-        if (!box) return prev;
-        return prev.filter((box) => box.id !== hovered);
-      });
+      removeBlock(hovered);
+      return;
     }
 
-    return () => {
-      window.removeEventListener("contextmenu", handleRightClick);
-    };
-  }, [hovered]);
-
-  function createBox() {
     const position = new Vector3(
       Math.round(pos.x),
       Math.round(pos.y) - 0.5,
       Math.round(pos.z)
     );
 
-    const box = boxes.find(
-      (box) =>
-        box.pos.x === position.x &&
-        box.pos.y === position.y &&
-        box.pos.z === position.z
+    const block = blocks.find(
+      (block) =>
+        block.pos.x === position.x &&
+        block.pos.y === position.y &&
+        block.pos.z === position.z
     );
-    if (box) return;
+    if (block) return;
 
     const id = guid();
-    const newBox: BoxTypes = {
+
+    addBlock({
       id,
       pos,
       blockId: selectedBlock,
-    };
-
-    setBoxes((prev) => [...prev, newBox]);
+    });
     setHovered(id);
   }
 
   return (
     <>
       {isIntersecting && (
-        <Box
+        <Block
           pos={pos}
-          objectId="addBox"
-          onClick={createBox}
+          objectId="addBlock"
+          onClick={onClick}
           blockId={selectedBlock}
           hoverBlock
         />
       )}
-      {boxes.map((box) => (
-        <Box
-          key={box.id}
-          id={box.id}
-          objectId="box"
-          pos={box.pos}
-          blockId={box.blockId}
+      {blocks.map((block) => (
+        <Block
+          key={block.id}
+          id={block.id}
+          objectId="block"
+          pos={block.pos}
+          blockId={block.blockId}
         />
       ))}
     </>

@@ -16,18 +16,23 @@ export default function PlayerCam() {
 
   useFrame(() => {
     const move = new Vector3(0, 0, 0);
+    let shiftModifier = 1;
+
+    if (keyboard.has(controls.SHIFT.code)) {
+      shiftModifier = controls.SHIFT.modifier;
+    }
 
     if (keyboard.has(controls.FORWARD.code)) {
-      move.z -= controls.FORWARD.modifier;
+      move.z -= controls.FORWARD.modifier * shiftModifier;
     }
     if (keyboard.has(controls.BACKWARD.code)) {
-      move.z += controls.BACKWARD.modifier;
+      move.z += controls.BACKWARD.modifier * shiftModifier;
     }
     if (keyboard.has(controls.LEFT.code)) {
-      move.x -= controls.LEFT.modifier;
+      move.x -= controls.LEFT.modifier * shiftModifier;
     }
     if (keyboard.has(controls.RIGHT.code)) {
-      move.x += controls.RIGHT.modifier;
+      move.x += controls.RIGHT.modifier * shiftModifier;
     }
 
     const direction = camera.getWorldDirection(new Vector3());

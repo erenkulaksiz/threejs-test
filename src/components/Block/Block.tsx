@@ -1,9 +1,9 @@
 import { TextureLoader, Vector3 } from "three";
 import { useLoader } from "@react-three/fiber";
-import objects from "@/constants/objects";
-import type { BoxProps } from "./Box.types";
+import objects from "@/constants/blocks";
+import type { BlockProps } from "./Block.types";
 
-export default function Box({
+export default function Block({
   pos,
   objectId,
   blockId,
@@ -11,12 +11,11 @@ export default function Box({
   onClick,
   hoverBlock,
   ...props
-}: BoxProps) {
+}: BlockProps) {
   const objectKey =
     Object.keys(objects).find((obj) => objects[obj].id == blockId) || "plank";
 
   const { image } = objects[objectKey];
-
   const texture = useLoader(TextureLoader, image);
 
   return (
